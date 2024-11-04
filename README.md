@@ -14,7 +14,7 @@ Demo site here: http://browsertest.freeddns.org/
 9. Your color depth
 10. Your GPU vendor
 11. Your GPU renderer
-12. Your CPU cored
+12. Your CPU cores
 13. Your detected memory limit
 14. Your mouse position
 15. If the site is in focus
