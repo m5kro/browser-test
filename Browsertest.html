@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Browser Information</title>
+  <style>
+    /* General styling */
+    body {
+      font-family: Arial, sans-serif;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #f4f4f9;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    /* Title styling */
+    h1 {
+      margin-top: 60px;
+      color: #444;
+    }
+
+    h3 {
+      color: #333;
+      border-bottom: 2px solid #ddd;
+      padding-bottom: 5px;
+      margin-bottom: 10px;
+    }
+
+    /* Theme Toggle Button */
+    #theme-toggle {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background-color: #282c34;
+      color: #61dafb;
+      padding: 8px 12px;
+      font-size: 14px;
+      border-radius: 5px;
+      cursor: pointer;
+      box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+      font-weight: bold;
+    }
+
+    /* Mouse tracker and focus status styling */
+    #mouse-tracker, #focus-status, #devtools-status {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background-color: #282c34;
+      color: #61dafb;
+      padding: 8px 12px;
+      font-size: 14px;
+      border-radius: 5px;
+      font-weight: bold;
+      box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    #focus-status {
+      top: 50px; /* Position below mouse-tracker */
+    }
+    #devtools-status {
+      top: 90px;
+    }
+
+    /* Information sections styling */
+    #info-section, #ip-section, #geo-section, #font-section, #credits-section {
+      background-color: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      margin: 15px;
+      width: 80%;
+      max-width: 600px;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    #info-section {
+      margin-top: 40px;
+    }
+
+    #ip-list, #font-list {
+      list-style-type: none; /* Remove bullet points */
+      padding: 0;
+      margin: 0;
+    }
+
+    #vpn-message {
+      color: #d9534f;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    /* Dark theme styling */
+    body.dark {
+      background-color: #121212;
+      color: #cfd8dc;
+    }
+
+    body.dark h1, body.dark h3 {
+      color: #cfd8dc; /* Light grey for dark mode */
+    }
+
+    body.dark #info-section, 
+    body.dark #ip-section, 
+    body.dark #geo-section, 
+    body.dark #font-section, 
+    body.dark #credits-section {
+      background-color: #333;
+      color: #cfd8dc;
+    }
+
+    body.dark #theme-toggle {
+      background-color: #cfd8dc;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div id="theme-toggle">Toggle Theme: Light</div>
+  <div id="mouse-tracker">Mouse Position: X: 0, Y: 0</div>
+  <div id="focus-status">In focus: Yes</div>
+  <div id="devtools-status">DevTools: Closed</div>
+  <h1>Your Browser Information</h1>
+  
+  <!-- System Information -->
+  <div id="info-section"></div>
+  
+  <!-- IP List Section -->
+  <div id="ip-section">
+    <h3>Your IPs:</h3>
+    <ul id="ip-list"></ul>
+  </div>
+  
+  <!-- IP Geolocation Data Section -->
+  <div id="geo-section">
+    <h3>Geolocation Information:</h3>
+    <!-- IP geolocation data will be appended here -->
+  </div>
+
+  <!-- Font Section -->
+  <div id="font-section">
+    <h3>Installed Fonts (takes a few seconds to load):</h3>
+    <ul id="font-list"></ul>
+  </div>
+
+  <!-- Credits Section -->
+  <div id="credits-section">
+    <h3>Credits:</h3>
+    <p>Thanks to VoidSec for WebRTC leak code</p>
+    <p>Thanks to ip-api.com for IP geolocation</p>
+    <p>Thanks to 1j01 for system font detection</p>
+    <p>Thanks to mindmup for the 3rd-party cookie check</p>
+    <p>Thanks to sindresorhus for the Devtools check</p>
+  </div>
+
+  <script>
+    // Detect user's preferred color scheme
+    const prefersDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const themeToggle = document.getElementById("theme-toggle");
+    let isDarkMode = prefersDarkMode;
+
+    // Set initial theme based on user preference
+    function applyTheme() {
+      document.body.classList.toggle("dark", isDarkMode);
+      themeToggle.textContent = `Toggle Theme: ${!isDarkMode ? "Dark" : "Light"}`;
+    }
+    applyTheme();
+
+    // Toggle theme and update theme indicator
+    themeToggle.addEventListener("click", () => {
+      isDarkMode = !isDarkMode;
+      applyTheme();
+    });
+
+    // Mouse Tracker
+    document.addEventListener('mousemove', (event) => {
+      const mouseTracker = document.getElementById('mouse-tracker');
+      mouseTracker.textContent = `Mouse Position: X: ${event.clientX}, Y: ${event.clientY}`;
+    });
+
+    // Tab Focus Tracker using document.hasFocus()
+    const focusStatus = document.getElementById("focus-status");
+    function updateFocusStatus() {
+      focusStatus.textContent = `In focus: ${document.hasFocus() ? 'Yes' : 'No'}`;
+    }
+    // Update focus status initially and then on an interval
+    updateFocusStatus();
+    setInterval(updateFocusStatus, 500);
+
+    // Thanks to sindresorhus Devtools-detect code
+    const devtools = {
+      isOpen: false,
+    };
+
+    const threshold = 170;
+
+    const emitEvent = (isOpen) => {
+      globalThis.dispatchEvent(new globalThis.CustomEvent('devtoolschange', {
+        detail: {
+          isOpen,
+        },
+      }));
+    };
+
+    const main = ({emitEvents = true} = {}) => {
+      const widthThreshold = globalThis.outerWidth - globalThis.innerWidth > threshold;
+      const heightThreshold = globalThis.outerHeight - globalThis.innerHeight > threshold;
+
+      if (
+        !(heightThreshold && widthThreshold)
+        && ((globalThis.Firebug && globalThis.Firebug.chrome && globalThis.Firebug.chrome.isInitialized) || widthThreshold || heightThreshold)
+      ) {
+        if (!devtools.isOpen && emitEvents) {
+          emitEvent(true);
+        }
+
+        devtools.isOpen = true;
+      } else {
+        if (devtools.isOpen && emitEvents) {
+          emitEvent(false);
+        }
+
+        devtools.isOpen = false;
+      }
+    };
+
+    main({emitEvents: false});
+    setInterval(main, 500);
+
+    // Update the DevTools status display
+    const devtoolsStatus = document.getElementById('devtools-status');
+
+    globalThis.addEventListener('devtoolschange', (event) => {
+      devtoolsStatus.textContent = `DevTools: ${event.detail.isOpen ? 'Open' : 'Closed'}`;
+    });
+
+    // Thanks to mindmup for the 3rd party cookie check code
+    function checkThirdPartyCookies() {
+      return new Promise((resolve) => {
+        const receiveMessage = function (evt) {
+          if (evt.data === 'MM:3PCsupported') {
+            resolve(true);
+          } else if (evt.data === 'MM:3PCunsupported') {
+            resolve(false);
+          }
+        };
+
+        window.addEventListener("message", receiveMessage, { once: true });
+
+        // Load the iframe that will trigger the message
+        const iframe = document.createElement("iframe");
+        iframe.src = "https://mindmup.github.io/3rdpartycookiecheck/start.html";
+        iframe.style.display = "none";
+        document.body.appendChild(iframe);
+      });
+    }
+
+    // Rudimentary check for adblockers by checking if ad-related scripts are blocked
+    async function checkAdWebsites() {
+      const urls = [
+          "https://imasdk.googleapis.com/js/sdkloader/ima3.js",
+          "https://static.doubleclick.net/instream/ad_status.js"
+      ];
+
+      const checkUrl = url =>
+          new Promise(resolve => {
+              const script = document.createElement("script");
+              script.src = url;
+              script.onload = () => resolve(true);   // Resolves to true if it loads successfully
+              script.onerror = () => resolve(false); // Resolves to false if it fails to load
+              document.head.appendChild(script);
+
+              // Remove the script after checking
+              script.addEventListener("load", () => script.remove());
+              script.addEventListener("error", () => script.remove());
+          });
+
+      try {
+          const results = await Promise.all(urls.map(checkUrl));
+          // If both results are false (unreachable), return true; otherwise, return false
+          return results.every(result => !result);
+      } catch (error) {
+          console.error("Error occurred during loading check:", error);
+          return true; // Return true if an error interrupts the process
+      }
+    }
+
+
+    // Function to retrieve IP addresses with ifconfig.me first, followed by multiple STUN servers
+    function findIP(onNewIP) {
+      // Set to track unique IPs
+      const uniqueIPs = new Set();
+
+      // Function to handle new IPs and prevent duplicates
+      function handleNewIP(ip) {
+        if (!uniqueIPs.has(ip) && ip != '0.0.0.0') {
+          uniqueIPs.add(ip);
+          onNewIP(ip);
+        }
+      }
+
+      // Step 1: Fetch IP from ifconfig.me first
+      fetch('https://ifconfig.me/ip')
+        .then(response => response.text())
+        .then(ip => handleNewIP(ip.trim()))
+        .catch(error => console.error('Error fetching IP from ifconfig.me:', error))
+        .finally(() => {
+          // Step 2: Fetch STUN server list and continue with WebRTC discovery
+          fetch('/stunserverlist.txt')
+            .then(response => response.text())
+            .then(text => {
+              // Parse the STUN server list
+              const stunServers = text.split('\n')
+                .map(line => line.trim())
+                .filter(line => line) // Remove empty lines
+                .map(server => ({ urls: `stun:${server}` }));
+
+              // If no servers, default to a Google STUN server
+              if (stunServers.length === 0) {
+                stunServers.push({ urls: 'stun:stun.l.google.com:19302' });
+              }
+
+              // Initialize WebRTC for each STUN server in the list
+              stunServers.forEach(stunServer => {
+                const myPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+                const pc = new myPeerConnection({ iceServers: [stunServer] });
+                const ipRegex = /([0-9]{1,3}(\.[0-9]{1,3}){3}|[a-f0-9]{1,4}(:[a-f0-9]{1,4}){7})/g;
+
+                pc.createDataChannel("");
+                pc.createOffer().then(sdp => {
+                  sdp.sdp.split('\n').forEach(line => {
+                    if (line.indexOf('candidate') < 0) return;
+                    line.match(ipRegex).forEach(handleNewIP);
+                  });
+                  pc.setLocalDescription(sdp).catch(() => {});
+                }).catch(() => {});
+
+                pc.onicecandidate = ice => {
+                  if (!ice || !ice.candidate || !ice.candidate.candidate.match(ipRegex)) return;
+                  ice.candidate.candidate.match(ipRegex).forEach(handleNewIP);
+                };
+              });
+            })
+            .catch(error => console.error('Error fetching STUN server list:', error));
+        });
+    }
+
+    // Function to display IPs and fetch geolocation data
+    function displayIPData(ip) {
+      var ul = document.getElementById('ip-list');
+      var li = document.createElement('li');
+      li.textContent = `IP: ${ip}`;
+      ul.appendChild(li);
+
+      // Create a new container for each IP's geolocation information in the geo-section
+      const geoSection = document.getElementById("geo-section");
+      const locationSection = document.createElement("div");
+      locationSection.className = "ip-location-section";
+      locationSection.innerHTML = `<h3>Location Information for IP: ${ip}</h3>`;
+      geoSection.appendChild(locationSection);
+
+      // Fetch geolocation data for each IP
+      fetch(`http://ip-api.com/json/${ip}?fields=status,message,country,countryCode,region,regionName,city,district,zip,lat,lon,timezone,isp,org,as,mobile,proxy,hosting,query`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === "success") {
+            locationSection.innerHTML += `
+              <strong>IP:</strong> ${data.query} <br>
+              <strong>Country:</strong> ${data.country} (${data.countryCode})<br>
+              <strong>Region:</strong> ${data.regionName} (${data.region})<br>
+              <strong>City:</strong> ${data.city}<br>
+              <strong>District:</strong> ${data.district}<br>
+              <strong>ZIP:</strong> ${data.zip}<br>
+              <strong>Latitude:</strong> ${data.lat}<br>
+              <strong>Longitude:</strong> ${data.lon}<br>
+              <strong>Timezone:</strong> ${data.timezone}<br>
+              <strong>ISP:</strong> ${data.isp}<br>
+              <strong>Organization:</strong> ${data.org}<br>
+              <strong>AS:</strong> ${data.as}<br>
+              <strong>Mobile:</strong> ${data.mobile ? "Yes" : "No"}<br>
+              <strong>Proxy:</strong> ${data.proxy ? "Yes" : "No"}<br>
+              <strong>Hosting:</strong> ${data.hosting ? "Yes" : "No"}<br>
+            `;
+
+            // Display VPN message in the info-section if hosting is detected
+            if (data.proxy || data.hosting) {
+              let vpnMessage = document.getElementById("vpn-message");
+              if (!vpnMessage) {
+                vpnMessage = document.createElement("div");
+                vpnMessage.id = "vpn-message";
+                vpnMessage.innerHTML = "<strong>Likely using a Public or Self Hosted VPN</strong>";
+                document.getElementById("info-section").prepend(vpnMessage);
+              }
+            }
+          } else {
+            locationSection.innerHTML += "Geolocation data not available: " + data.message;
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching geolocation data:', error);
+          locationSection.innerHTML += " - Error fetching geolocation data";
+        });
+    }
+
+    // Detect OS, Browser, Cookies, Screen Size, Color Depth, WebGL Support, GPU Information, Language, Hardware Concurrency, Device Memory
+    function getOSType() {
+      const userAgent = navigator.userAgent;
+      if (userAgent.indexOf("Win") !== -1) return "Windows";
+      if (userAgent.indexOf("Mac") !== -1) return "MacOS";
+      if (userAgent.indexOf("Linux") !== -1) return "Linux";
+      if (userAgent.indexOf("Android") !== -1) return "Android";
+      if (userAgent.indexOf("like Mac") !== -1) return "iOS";
+      return "Unknown OS";
+    }
+
+    function getBrowserType() {
+      const userAgent = navigator.userAgent;
+      if (userAgent.indexOf("Firefox") !== -1) return "Firefox";
+      if (userAgent.indexOf("Opera") !== -1 || userAgent.indexOf("OPR") !== -1) return "Opera";
+      if (userAgent.indexOf("Chrome") !== -1) return "Chrome";
+      if (userAgent.indexOf("Safari") !== -1) return "Safari";
+      if (userAgent.indexOf("Trident") !== -1) return "Internet Explorer";
+      return "Unknown Browser";
+    }
+
+    function checkWebGLSupport() {
+      try {
+        const canvas = document.createElement("canvas");
+        const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+        if (gl) {
+          const debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
+          const gpuVendor = debugInfo ? gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) : "Unknown";
+          const gpuRenderer = debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : "Unknown";
+          return { supported: true, vendor: gpuVendor, renderer: gpuRenderer };
+        }
+      } catch (e) {
+        return { supported: false };
+      }
+      return { supported: false };
+    }
+
+    // Display system information at the top
+    const osType = getOSType();
+    const browserType = getBrowserType();
+    const cookiesEnabled = navigator.cookieEnabled ? "Yes" : "No";
+    const browserTime = new Date().toLocaleString();
+    const userAgent = navigator.userAgent;
+    const screenWidth = window.screen.width;
+    const screenHeight = window.screen.height;
+    const colorDepth = window.screen.colorDepth;
+    const webGLInfo = checkWebGLSupport();
+    const language = navigator.language || "Unknown";
+    const hardwareConcurrency = navigator.hardwareConcurrency || "Unknown";
+    const deviceMemory = navigator.deviceMemory ? `${navigator.deviceMemory} GB` : "Unknown";
+    const themePreference = prefersDarkMode ? "Dark" : "Light";
+
+    var infoSection = document.getElementById('info-section');
+    infoSection.innerHTML = `
+      <strong>Operating System:</strong> ${osType} <br>
+      <strong>Browser:</strong> ${browserType} <br>
+      <strong>Language:</strong> ${language} <br>
+      <strong>Preferred Theme:</strong> ${themePreference} <br>
+      <strong>Accepts Cookies:</strong> ${cookiesEnabled} <br>
+      <span id="third-party-cookie-status"><strong>Third-Party Cookies:</strong> Checking...</span> <br>
+      <span id="adblock-status"><strong>Adblock Detected:</strong> Checking...</span> <br>
+      <strong>Browser Time:</strong> ${browserTime} <br>
+      <strong>User Agent:</strong> ${userAgent} <br>
+      <strong>Screen Size:</strong> ${screenWidth} x ${screenHeight} <br>
+      <strong>Color Depth:</strong> ${colorDepth}-bit <br>
+      <strong>WebGL Support:</strong> ${webGLInfo.supported ? "Yes" : "No"} <br>
+      ${webGLInfo.supported ? `<strong>GPU Vendor:</strong> ${webGLInfo.vendor} <br><strong>GPU Renderer:</strong> ${webGLInfo.renderer} <br>` : ""}
+      <strong>Hardware Concurrency:</strong> ${hardwareConcurrency} cores <br>
+      <strong>Device Memory:</strong> ${deviceMemory} <br>
+    `;
+
+    // Update third-party cookies support status after the check completes
+    checkThirdPartyCookies().then((isSupported) => {
+      thirdPartyCookiesSupported = isSupported;
+      const thirdPartyStatus = document.getElementById("third-party-cookie-status");
+      thirdPartyStatus.innerHTML = `<strong>Third-Party Cookies:</strong> ${thirdPartyCookiesSupported ? "Allowed" : "Blocked"}`;
+    });
+
+    // Update adblock status after the check completes
+    checkAdWebsites().then(result => {
+      const adblockStatus = document.getElementById("adblock-status");
+      adblockStatus.innerHTML = `<strong>Adblock Detected:</strong> ${result ? "Yes" : "No"}`;
+    });
+
+    (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+    var after, domReady, every;
+    
+    after = function(ms, fn) {
+      var tid;
+      tid = setTimeout(fn, ms);
+      return {
+        stop: function() {
+          return clearTimeout(tid);
+        }
+      };
+    };
+    
+    every = function(ms, fn) {
+      var iid;
+      iid = setInterval(fn, ms);
+      return {
+        stop: function() {
+          return clearInterval(iid);
+        }
+      };
+    };
+    
+    domReady = function(callback) {
+      if (/in/.test(document.readyState)) {
+        return after(10, function() {
+          return domReady(callback);
+        });
+      } else {
+        return callback();
+      }
+    };
+    
+    (function(exports) {
+      var FD, Font, container, doneTestingFonts, fontAvailabilityChecker, genericFontFamilies, loadFonts, someCommonFontNames, startedLoading, testFonts, testedFonts;
+      FD = exports.FontDetective = {};
+      genericFontFamilies = ["serif", "sans-serif", "cursive", "fantasy", "monospace"];
+      someCommonFontNames = "Helvetica,Lucida Grande,Lucida Sans,Tahoma,Arial,Geneva,Monaco,Verdana,Microsoft Sans Serif,Trebuchet MS,Courier New,Times New Roman,Courier,Lucida Bright,Lucida Sans Typewriter,URW Chancery L,Comic Sans MS,Georgia,Palatino Linotype,Lucida Sans Unicode,Times,Century Schoolbook L,URW Gothic L,Franklin Gothic Medium,Lucida Console,Impact,URW Bookman L,Helvetica Neue,Nimbus Sans L,URW Palladio L,Nimbus Mono L,Nimbus Roman No9 L,Arial Black,Sylfaen,MV Boli,Estrangelo Edessa,Tunga,Gautami,Raavi,Mangal,Shruti,Latha,Kartika,Vrinda,Arial Narrow,Century Gothic,Garamond,Book Antiqua,Bookman Old Style,Calibri,Cambria,Candara,Corbel,Monotype Corsiva,Cambria Math,Consolas,Constantia,MS Reference Sans Serif,MS Mincho,Segoe UI,Arial Unicode MS,Tempus Sans ITC,Kristen ITC,Mistral,Meiryo UI,Juice ITC,Papyrus,Bradley Hand ITC,French Script MT,Malgun Gothic,Microsoft YaHei,Gisha,Leelawadee,Microsoft JhengHei,Haettenschweiler,Microsoft Himalaya,Microsoft Uighur,MoolBoran,Jokerman,DFKai-SB,KaiTi,SimSun-ExtB,Freestyle Script,Vivaldi,FangSong,MingLiU-ExtB,MingLiU_HKSCS,MingLiU_HKSCS-ExtB,PMingLiU-ExtB,Copperplate Gothic Light,Copperplate Gothic Bold,Franklin Gothic Book,Maiandra GD,Perpetua,Eras Demi ITC,Felix Titling,Franklin Gothic Demi,Pristina,Edwardian Script ITC,OCR A Extended,Engravers MT,Eras Light ITC,Franklin Gothic Medium Cond,Rockwell Extra Bold,Rockwell,Curlz MT,Blackadder ITC,Franklin Gothic Heavy,Franklin Gothic Demi Cond,Lucida Handwriting,Segoe UI Light,Segoe UI Semibold,Lucida Calligraphy,Cooper Black,Viner Hand ITC,Britannic Bold,Wide Latin,Old English Text MT,Broadway,Footlight MT Light,Harrington,Snap ITC,Onyx,Playbill,Bauhaus 93,Baskerville Old Face,Algerian,Matura MT Script Capitals,Stencil,Batang,Chiller,Harlow Solid Italic,Kunstler Script,Bernard MT Condensed,Informal Roman,Vladimir Script,Bell MT,Colonna MT,High Tower Text,Californian FB,Ravie,Segoe Script,Brush Script MT,SimSun,Arial Rounded MT Bold,Berlin Sans FB,Centaur,Niagara Solid,Showcard Gothic,Niagara Engraved,Segoe Print,Gabriola,Gill Sans MT,Iskoola Pota,Calisto MT,Script MT Bold,Century Schoolbook,Berlin Sans FB Demi,Magneto,Arabic Typesetting,DaunPenh,Mongolian Baiti,DokChampa,Euphemia,Kalinga,Microsoft Yi Baiti,Nyala,Bodoni MT Poster Compressed,Goudy Old Style,Imprint MT Shadow,Gill Sans MT Condensed,Gill Sans Ultra Bold,Palace Script MT,Lucida Fax,Gill Sans MT Ext Condensed Bold,Goudy Stout,Eras Medium ITC,Rage Italic,Rockwell Condensed,Castellar,Eras Bold ITC,Forte,Gill Sans Ultra Bold Condensed,Perpetua Titling MT,Agency FB,Tw Cen MT,Gigi,Tw Cen MT Condensed,Aparajita,Gloucester MT Extra Condensed,Tw Cen MT Condensed Extra Bold,PMingLiU,Bodoni MT,Bodoni MT Black,Bodoni MT Condensed,MS Gothic,GulimChe,MS UI Gothic,MS PGothic,Gulim,MS PMincho,BatangChe,Dotum,DotumChe,Gungsuh,GungsuhChe,MingLiU,NSimSun,SimHei,DejaVu Sans,DejaVu Sans Condensed,DejaVu Sans Mono,DejaVu Serif,DejaVu Serif Condensed,Eurostile,Matisse ITC,Bitstream Vera Sans Mono,Bitstream Vera Sans,Staccato222 BT,Bitstream Vera Serif,Broadway BT,ParkAvenue BT,Square721 BT,Calligraph421 BT,MisterEarl BT,Cataneo BT,Ruach LET,Rage Italic LET,La Bamba LET,Blackletter686 BT,John Handy LET,Scruff LET,Westwood LET".split(",").sort();
+      testedFonts = [];
+      doneTestingFonts = false;
+      startedLoading = false;
+      container = document.createElement("div");
+      container.id = "font-detective";
+    
+      /*
+           * A font class that can be stringified for use in css
+           * e.g. font.toString() or (font + ", sans-serif")
+       */
+      Font = (function() {
+        function Font(name, type, style) {
+          this.name = name;
+          this.type = type;
+          this.style = style;
+        }
+    
+        Font.prototype.toString = function() {
+          return '"' + this.name.replace(/\\/g, "\\\\").replace(/"/g, "\\\"") + '"';
+        };
+    
+        return Font;
+    
+      })();
+      fontAvailabilityChecker = (function() {
+        var baseFontFamilies, baseHeights, baseWidths, span;
+        baseFontFamilies = ["monospace", "sans-serif", "serif"];
+        span = document.createElement("span");
+        span.innerHTML = "mmmmmmmmmmlli";
+        span.style.fontSize = "72px";
+        baseWidths = {};
+        baseHeights = {};
+        return {
+          init: function() {
+            var baseFontFamily, j, len, results;
+            document.body.appendChild(container);
+            results = [];
+            for (j = 0, len = baseFontFamilies.length; j < len; j++) {
+              baseFontFamily = baseFontFamilies[j];
+              span.style.fontFamily = baseFontFamily;
+              container.appendChild(span);
+              baseWidths[baseFontFamily] = span.offsetWidth;
+              baseHeights[baseFontFamily] = span.offsetHeight;
+              results.push(container.removeChild(span));
+            }
+            return results;
+          },
+          check: function(font) {
+            var baseFontFamily, differs, j, len;
+            for (j = 0, len = baseFontFamilies.length; j < len; j++) {
+              baseFontFamily = baseFontFamilies[j];
+              span.style.fontFamily = font + ", " + baseFontFamily;
+              container.appendChild(span);
+              differs = span.offsetWidth !== baseWidths[baseFontFamily] || span.offsetHeight !== baseHeights[baseFontFamily];
+              container.removeChild(span);
+              if (differs) {
+                return true;
+              }
+            }
+            return false;
+          }
+        };
+      })();
+      loadFonts = function() {
+        if (startedLoading) {
+          return;
+        }
+        startedLoading = true;
+        FD.incomplete = true;
+        return domReady((function(_this) {
+          return function() {
+            var fontName;
+            return testFonts((function() {
+              var j, len, results;
+              results = [];
+              for (j = 0, len = someCommonFontNames.length; j < len; j++) {
+                fontName = someCommonFontNames[j];
+                results.push(new Font(fontName));
+              }
+              return results;
+            })());
+          };
+        })(this));
+      };
+      testFonts = function(fonts) {
+        var i, testingFonts;
+        fontAvailabilityChecker.init();
+        i = 0;
+        return testingFonts = every(20, function() {
+          var available, callback, font, j, k, l, len, len1, ref, ref1;
+          for (j = 0; j <= 5; j++) {
+            font = fonts[i];
+            available = fontAvailabilityChecker.check(font);
+            if (available) {
+              testedFonts.push(font);
+              ref = FD.each.callbacks;
+              for (k = 0, len = ref.length; k < len; k++) {
+                callback = ref[k];
+                callback(font);
+              }
+            }
+            i++;
+            if (i >= fonts.length) {
+              testingFonts.stop();
+              ref1 = FD.all.callbacks;
+              for (l = 0, len1 = ref1.length; l < len1; l++) {
+                callback = ref1[l];
+                callback(testedFonts);
+              }
+              FD.all.callbacks = [];
+              FD.each.callbacks = [];
+              doneTestingFonts = true;
+              return;
+            }
+          }
+        });
+      };
+    
+      /*
+           * FontDetective.preload()
+           * Starts detecting fonts early
+       */
+      FD.preload = loadFonts;
+    
+      /*
+           * FontDetective.each(function(font){})
+           * Calls back with a `Font` every time a font is detected and tested
+       */
+      FD.each = function(callback) {
+        var font, j, len;
+        for (j = 0, len = testedFonts.length; j < len; j++) {
+          font = testedFonts[j];
+          callback(font);
+        }
+        if (!doneTestingFonts) {
+          FD.each.callbacks.push(callback);
+          return loadFonts();
+        }
+      };
+      FD.each.callbacks = [];
+    
+      /*
+           * FontDetective.all(function(fonts){})
+           * Calls back with an `Array` of `Font`s when all fonts are detected and tested
+       */
+      FD.all = function(callback) {
+        if (doneTestingFonts) {
+          return callback(testedFonts);
+        } else {
+          FD.all.callbacks.push(callback);
+          return loadFonts();
+        }
+      };
+      return FD.all.callbacks = [];
+    })(window);
+    
+    
+    },{}]},{},[1]);
+
+    const fontList = document.getElementById("font-list");
+
+    // Check for available fonts and display them as comma-separated values
+    FontDetective.all((fonts) => {
+      const fontNames = fonts.map(font => font.name).join(", ");
+      const li = document.createElement("li");
+      li.textContent = fontNames;
+      fontList.appendChild(li);
+    });
+
+    // Start finding IP addresses
+    findIP(displayIPData);
+  </script>
+</body>
+</html>
