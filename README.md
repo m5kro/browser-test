@@ -1,6 +1,5 @@
 # Browser Test
-A website that tells you everything it can about your browser though various ways of fingerprinting. <br>
-Demo site here: http://browsertest.freeddns.org/
+A website that tells you everything it can about your browser though various ways of fingerprinting. 
 
 # What's Tested
 1. Your operating system
